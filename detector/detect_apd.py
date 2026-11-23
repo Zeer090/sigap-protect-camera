@@ -40,7 +40,7 @@ DEFAULT_MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "best.p
 BACKEND_URL = "http://127.0.0.1:8000/api/alert"
 
 # URL Endpoint API Eksternal SIGAP Protect (PHP Server LAN)
-EXTERNAL_API_URL = "http://172.26.224.1/sigap-protect/api/ingest_deteksi.php"
+EXTERNAL_API_URL = "http://10.218.31.240/sigap-protect/api/ingest_deteksi.php"
 
 # Folder Penyimpanan Bukti Snapshot
 SNAPSHOT_DIR = Path(__file__).resolve().parent.parent / "snapshots"
