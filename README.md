@@ -1,6 +1,6 @@
 # Sistem Deteksi Kelengkapan APD Real-Time (100% On-Premise / LAN)
 
-Sistem pemantauan kepatuhan Alat Pelindung Diri (APD / PPE - *Personal Protective Equipment*) seperti **Helm Keselamatan** (*Safety Helmet*) dan **Rompi Reflektif** (*Safety Vest*) berbasis Computer Vision (**Ultralytics YOLO**) secara *real-time* dari input Webcam maupun RTSP IP Camera, dengan notifikasi otomatis ke dashboard web melalui WebSocket di jaringan lokal (on-premise).
+Sistem pemantauan kepatuhan Alat Pelindung Diri (APD / PPE - *Personal Protective Equipment*) meliputi **Helm Keselamatan** (*Safety Helmet*), **Rompi Reflektif** (*Safety Vest*), dan **Sepatu Boot** (*Safety Boots*) berbasis Computer Vision (**Ultralytics YOLOv8 + ByteTrack**) secara *real-time* dari input Webcam maupun RTSP IP Camera, dengan notifikasi otomatis ke dashboard web melalui WebSocket di jaringan lokal (on-premise).
 
 ---
 
@@ -8,42 +8,48 @@ Sistem pemantauan kepatuhan Alat Pelindung Diri (APD / PPE - *Personal Protectiv
 
 ```text
 apd-local-system/
-├── models/              # Tempat menyimpan bobot model YOLO (.pt), misal: best.pt
-├── snapshots/           # Penyimpanan gambar bukti pelanggaran APD (JPG)
+├── audio/
+│   └── alarm.mp3          # File sirine untuk speaker lokal komputer
 ├── backend/
-│   ├── main.py          # Server lokal FastAPI + WebSocket + SQLite + static server
-│   └── apd_alerts.db    # Database lokal SQLite (otomatis terbuat saat server start)
-├── frontend/
-│   └── index.html       # Dashboard web real-time (HTML5, modern CSS, Vanilla JS, Web Audio API)
+│   ├── main.py            # Server lokal FastAPI + WebSocket + SQLite + static server
+│   └── apd_alerts.db      # Database lokal SQLite (otomatis terbuat saat server start)
 ├── detector/
-│   └── detect_apd.py    # Skrip inferensi YOLO, anti-flicker, cooldown, & auto-alert
-├── test_alert.py        # Skrip simulasi pengujian notifikasi tanpa kamera
-└── requirements.txt     # Daftar dependensi Python
+│   └── detect_apd.py      # Skrip inferensi YOLO, ByteTrack, anti-flicker, cooldown, & auto-alert
+├── frontend/
+│   ├── alarm.mp3          # File sirine MP3 looping untuk dashboard browser
+│   └── index.html         # Dashboard web real-time (HTML5, CSS modern, Vanilla JS)
+├── models/
+│   └── best.pt            # Bobot model YOLOv8 APD terlatih
+├── snapshots/             # Penyimpanan gambar bukti snapshot pelanggaran (JPG)
+├── test_alert.py          # Skrip simulasi pengujian notifikasi tanpa kamera
+└── requirements.txt       # Daftar dependensi Python
 ```
 
 ---
 
 ## ⚡ Fitur Utama
 
-1. **Inferensi YOLO Real-Time**:
-   - Mendukung input kamera webcam (indeks `0`) atau stream IP Camera melalui protokol `rtsp://username:password@ip:port/stream`.
-   - Menggunakan bobot model `models/best.pt` (jika belum ada, otomatis menggunakan fallback `yolov8n.pt` untuk uji coba awal).
+1. **Deteksi 3 APD Utama (Helm, Rompi, Sepatu Boot)**:
+   - Verifikasi warna fluorescent untuk rompi K3 (hijau stabilo / oranye).
+   - Analisis warna kulit (*skin-tone detection*) pada kaki untuk membedakan kaki telanjang vs sepatu safety boot asli.
+   - Filter spasial anatomi tubuh untuk mencegah salah deteksi (misal: jempol dikira helm).
 
-2. **Logika Anti-Flicker & Cooldown**:
-   - **Anti-Flicker**: Pelanggaran harus terdeteksi secara konsisten minimal **2 detik** berturut-turut sebelum memicu alert (mencegah *false alarm* akibat bayangan atau objek bergerak sekilas).
-   - **Cooldown 10 Detik**: Mengatur jeda minimal antar notifikasi agar tidak membanjiri (*spam*) sistem.
+2. **ByteTrack Multi-Object Tracking & EMA Smoothing**:
+   - Menjaga pelacakan rompi dan pekerja tetap stabil antar-frame tanpa kedipan (*no flicker*).
+   - Pergerakan bounding box mengalir halus (*smooth*) mengikuti gerakan tubuh.
 
-3. **Backend On-Premise FastAPI**:
-   - Berjalan pada host `0.0.0.0:8000` sehingga dapat diakses oleh semua perangkat (PC K3/HSE, laptop pengawas, tablet) dalam satu jaringan Wi-Fi/LAN yang sama.
-   - Menggunakan WebSocket (`/ws`) untuk *push notification* instan ke semua dashboard yang sedang terbuka.
+3. **Notifikasi Sirine MP3 Looping**:
+   - Begitu pelanggaran terkonfirmasi, sirine berbunyi berulang-ulang (*looping*) di dashboard web dan speaker lokal.
+   - Dilengkapi tombol kendali **"Matikan Suara Sirine"** dan auto-stop saat pelanggaran diselesaikan.
+
+4. **Logika Anti-Flicker & Cooldown**:
+   - **Anti-Flicker**: Pelanggaran harus bertahan minimal **2 detik** berturut-turut sebelum alert dipicu.
+   - **Cooldown 10 Detik**: Mengatur jeda minimal antar alert agar tidak membanjiri sistem.
+
+5. **Backend On-Premise FastAPI + WebSocket**:
+   - Berjalan pada host `0.0.0.0:8000` (aksesibel dari semua perangkat di LAN/WiFi).
+   - WebSocket (`/ws`) untuk *push notification* instan ke semua dashboard pengawas.
    - Riwayat pelanggaran tersimpan otomatis di database SQLite lokal (`apd_alerts.db`).
-
-4. **Dashboard Web Real-Time**:
-   - Desain responsif bertema *Industrial Safety* tanpa dependensi *build tools* rumit.
-   - **Audio Alarm Mandiri**: Menggunakan **Web Audio API** bawaan browser untuk menghasilkan sirine darurat frekuensi ganda tanpa butuh file MP3 eksternal.
-   - Menampilkan status koneksi WebSocket (auto-reconnect jika koneksi LAN terputus).
-   - Galeri kartu insiden dengan foto bukti beranotasi bounding box, waktu kejadian, tingkat akurasi (*confidence*), serta tombol interaktif **"Tandai Selesai"**.
-   - Fitur klik pada foto untuk zoom gambar bukti pelanggaran.
 
 ---
 
