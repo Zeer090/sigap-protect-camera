@@ -39,6 +39,9 @@ DEFAULT_MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "best.p
 # URL Endpoint Backend Alert
 BACKEND_URL = "http://127.0.0.1:8000/api/alert"
 
+# URL Endpoint API Eksternal SIGAP Protect (PHP Server LAN)
+EXTERNAL_API_URL = "http://172.26.224.1/sigap-protect/api/ingest_deteksi.php"
+
 # Folder Penyimpanan Bukti Snapshot
 SNAPSHOT_DIR = Path(__file__).resolve().parent.parent / "snapshots"
 
@@ -330,6 +333,32 @@ def stop_local_alarm_loop():
     threading.Thread(target=_silence_web, daemon=True).start()
 
 
+def send_to_external_api(camera_name: str, violations: list, confidence: float, snapshot_filename: str):
+    """
+    Mengirim data deteksi pelanggaran APD ke server PHP SIGAP Protect via LAN.
+    Berjalan di thread terpisah agar tidak memblokir loop deteksi utama.
+    """
+    import json as _json
+    payload = {
+        "camera_id": camera_name,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "violations": _json.dumps(violations),
+        "confidence": round(confidence, 2),
+        "snapshot": snapshot_filename,
+        "status": "PELANGGARAN",
+        "jumlah_pelanggaran": len(violations)
+    }
+    try:
+        response = requests.post(EXTERNAL_API_URL, json=payload, timeout=3.0)
+        print(f"[SIGAP API] Response {response.status_code}: {response.text[:120]}")
+    except requests.exceptions.ConnectionError:
+        print(f"[SIGAP API] Tidak dapat terhubung ke {EXTERNAL_API_URL} — periksa koneksi LAN.")
+    except requests.exceptions.Timeout:
+        print(f"[SIGAP API] Timeout menghubungi {EXTERNAL_API_URL}")
+    except requests.exceptions.RequestException as e:
+        print(f"[SIGAP API ERROR] {e}")
+
+
 def send_alert_to_backend(camera_name: str, violations: list, snapshot_filename: str, confidence: float):
     """Mengirim data pelanggaran ke backend server lokal FastAPI dan memicu sirine alarm looping."""
     # Nyalakan sirine alarm looping di speaker komputer
@@ -351,6 +380,13 @@ def send_alert_to_backend(camera_name: str, violations: list, snapshot_filename:
             print(f"[GAGAL KIRIM ALERT] Status code: {response.status_code}, Response: {response.text}")
     except requests.exceptions.RequestException as e:
         print(f"[KONEKSI ERROR] Tidak dapat terhubung ke server backend di {BACKEND_URL}: {e}")
+
+    # Kirim juga ke API Eksternal SIGAP Protect (non-blocking, thread terpisah)
+    threading.Thread(
+        target=send_to_external_api,
+        args=(camera_name, violations, confidence, snapshot_filename),
+        daemon=True
+    ).start()
 
 
 def main():
