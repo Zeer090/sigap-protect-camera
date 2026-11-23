@@ -78,11 +78,33 @@ def test_post(skenario: dict):
         print(f"\n  [SKIP] Skenario '{skenario['nama']}' tidak memiliki violations, dilewati.")
         return
 
+    # Tentukan status per APD: 1 = pakai (aman), 0 = tidak pakai (pelanggaran)
+    apd_helm   = 0 if "no_helmet" in violations else 1
+    apd_rompi  = 0 if "no_vest"   in violations else 1
+    apd_sepatu = 0 if "no_boots"  in violations else 1
+
+    # Mapping missing untuk format standar PHP SIGAP
+    missing_items = []
+    if "no_helmet" in violations:
+        missing_items.append("helm")
+    if "no_vest" in violations:
+        missing_items.append("rompi")
+    if "no_boots" in violations:
+        missing_items.append("sepatu")
+
+    labels = [LABEL_MAP.get(v, v) for v in violations]
+    label_text = " & ".join(labels) if labels else "Lengkap"
+
     payload = {
         "camera":              skenario["camera_id"],
         "camera_nomor":        skenario["camera_id"],
         "timestamp":           datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "violations":          json.dumps(violations),
+        "missing":             missing_items,
+        "label":               label_text,
+        "apd_helm":            apd_helm,
+        "apd_rompi":           apd_rompi,
+        "apd_sepatu":          apd_sepatu,
         "confidence":          round(skenario["confidence"], 2),
         "snapshot":            skenario["snapshot"],
         "status":              "PELANGGARAN",

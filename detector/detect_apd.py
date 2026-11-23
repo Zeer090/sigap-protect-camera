@@ -339,11 +339,42 @@ def send_to_external_api(camera_name: str, violations: list, confidence: float, 
     Berjalan di thread terpisah agar tidak memblokir loop deteksi utama.
     """
     import json as _json
+
+    # Tentukan status per APD: 1 = pakai (aman), 0 = tidak pakai (pelanggaran)
+    apd_helm    = 0 if "no_helmet" in violations else 1
+    apd_rompi   = 0 if "no_vest"   in violations else 1
+    apd_sepatu  = 0 if "no_boots"  in violations else 1
+
+    # Buat label teks deskriptif dari daftar pelanggaran
+    LABEL_MAP = {
+        "no_helmet": "Tidak Pakai Helm",
+        "no_vest":   "Tidak Pakai Rompi",
+        "no_boots":  "Tidak Pakai Sepatu Boot",
+    }
+    if violations:
+        label = " & ".join(LABEL_MAP.get(v, v) for v in violations)
+    else:
+        label = "APD Lengkap"
+
+    # Mapping missing untuk format standar PHP SIGAP
+    missing_items = []
+    if "no_helmet" in violations:
+        missing_items.append("helm")
+    if "no_vest" in violations:
+        missing_items.append("rompi")
+    if "no_boots" in violations:
+        missing_items.append("sepatu")
+
     payload = {
         "camera":              camera_name,
         "camera_nomor":        camera_name,
         "timestamp":           datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "violations":          _json.dumps(violations),
+        "missing":             missing_items,
+        "label":               label,
+        "apd_helm":            apd_helm,
+        "apd_rompi":           apd_rompi,
+        "apd_sepatu":          apd_sepatu,
         "confidence":          round(confidence, 2),
         "snapshot":            snapshot_filename,
         "status":              "PELANGGARAN",
