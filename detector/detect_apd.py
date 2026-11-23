@@ -135,6 +135,17 @@ def parse_arguments():
         default=480, 
         help="Resolusi inferensi gambar YOLO (480 untuk performa tinggi & responsif)"
     )
+    parser.add_argument(
+        "--stream-port", 
+        type=int, 
+        default=5000, 
+        help="Port HTTP live streaming MJPEG (default: 5000)"
+    )
+    parser.add_argument(
+        "--no-stream", 
+        action="store_true", 
+        help="Nonaktifkan server HTTP live streaming"
+    )
     return parser.parse_args()
 
 
@@ -438,7 +449,24 @@ def main():
     print(f"Cooldown Period       : {COOLDOWN_SEC} detik")
     print(f"Mode Headless         : {'Ya' if args.headless else 'Tidak (Menampilkan GUI)'}")
     print(f"Target Backend        : {BACKEND_URL}")
+    print(f"Target API SIGAP      : {EXTERNAL_API_URL}")
+    print(f"Live Stream MJPEG     : {'Aktif (Port ' + str(args.stream_port) + ')' if not args.no_stream else 'Nonaktif'}")
     print("=" * 60)
+
+    # Inisialisasi Server Live Streaming MJPEG (non-blocking)
+    stream_server = None
+    if not args.no_stream:
+        try:
+            from detector.stream_server import LiveStreamServer
+            stream_server = LiveStreamServer(
+                host="0.0.0.0",
+                port=args.stream_port,
+                camera_name=args.camera_name
+            )
+            stream_server.start()
+        except Exception as e:
+            print(f"[STREAMING WARNING] Gagal mengaktifkan streaming server: {e}")
+            stream_server = None
 
     # Inisialisasi Model YOLO
     model = load_yolo_model(args.model)
@@ -683,6 +711,10 @@ def main():
                 cv2.putText(annotated_frame, "SIRINE AKTIF (Tekan 's' utk senyap)", (20, annotated_frame.shape[0] - 50),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2, cv2.LINE_AA)
 
+            # Broadcast frame hasil deteksi lengkap ke live stream HTTP
+            if stream_server is not None:
+                stream_server.update_frame(annotated_frame)
+
             # Tampilkan GUI jika tidak dalam mode headless
             if not args.headless:
                 cv2.imshow("Monitor Deteksi APD Real-Time", annotated_frame)
@@ -697,6 +729,8 @@ def main():
     except KeyboardInterrupt:
         print("\n[INFO] Deteksi dihentikan dengan KeyboardInterrupt.")
     finally:
+        if stream_server is not None:
+            stream_server.stop()
         stop_local_alarm_loop()
         cap.release()
         if not args.headless:
