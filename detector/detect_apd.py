@@ -340,13 +340,14 @@ def send_to_external_api(camera_name: str, violations: list, confidence: float, 
     """
     import json as _json
     payload = {
-        "camera_id": camera_name,
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "violations": _json.dumps(violations),
-        "confidence": round(confidence, 2),
-        "snapshot": snapshot_filename,
-        "status": "PELANGGARAN",
-        "jumlah_pelanggaran": len(violations)
+        "camera":              camera_name,
+        "camera_nomor":        camera_name,
+        "timestamp":           datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "violations":          _json.dumps(violations),
+        "confidence":          round(confidence, 2),
+        "snapshot":            snapshot_filename,
+        "status":              "PELANGGARAN",
+        "jumlah_pelanggaran":  len(violations)
     }
     try:
         response = requests.post(EXTERNAL_API_URL, json=payload, timeout=3.0)

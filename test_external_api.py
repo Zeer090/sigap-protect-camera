@@ -79,7 +79,8 @@ def test_post(skenario: dict):
         return
 
     payload = {
-        "camera_id":           skenario["camera_id"],
+        "camera":              skenario["camera_id"],
+        "camera_nomor":        skenario["camera_id"],
         "timestamp":           datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "violations":          json.dumps(violations),
         "confidence":          round(skenario["confidence"], 2),
