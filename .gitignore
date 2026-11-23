@@ -1,0 +1,20 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# IDE Settings
+.vscode/
+.idea/
+
+# Database SQLite Lokal
+backend/apd_alerts.db
+
+# Folder Snapshots (abaikan foto-foto bukti pelanggaran lokal)
+snapshots/*
+!snapshots/.gitkeep

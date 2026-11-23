@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Monitoring APD Real-Time</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #0B0F19;
+      --bg-card: #111827;
+      --bg-card-hover: #1F2937;
+      --border-color: #374151;
+      --text-main: #F9FAFB;
+      --text-muted: #9CA3AF;
+      --danger: #EF4444;
+      --danger-dark: #991B1B;
+      --danger-glow: rgba(239, 68, 68, 0.35);
+      --warning: #F59E0B;
+      --success: #10B981;
+      --primary: #3B82F6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 20px 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #F59E0B, #EF4444);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+
+    .brand-title h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-title p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.825rem;
+      font-weight: 600;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--success);
+      transition: all 0.2s ease;
+    }
+
+    .status-badge.disconnected {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: var(--danger);
+    }
+
+    .status-badge.reconnecting {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: var(--warning);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: currentColor;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    .btn-audio {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: #1F2937;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-audio:hover {
+      background: #374151;
+    }
+
+    .btn-audio.active {
+      border-color: #3B82F6;
+      background: rgba(59, 130, 246, 0.2);
+      color: #93C5FD;
+    }
+
+    /* KPI Summary Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card .kpi-label {
+      font-size: 0.825rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .kpi-card .kpi-value {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .kpi-card.danger .kpi-value {
+      color: var(--danger);
+    }
+    .kpi-card.success .kpi-value {
+      color: var(--success);
+    }
+    .kpi-card.primary .kpi-value {
+      color: var(--primary);
+    }
+
+    /* Live Alarm Banner */
+    .emergency-banner {
+      display: none;
+      background: linear-gradient(90deg, #7F1D1D 0%, #B91C1C 50%, #7F1D1D 100%);
+      border: 2px solid #EF4444;
+      border-radius: 14px;
+      padding: 18px 24px;
+      box-shadow: 0 0 35px var(--danger-glow);
+      animation: pulse-danger 1.5s infinite;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    @keyframes pulse-danger {
+      0%, 100% {
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+      }
+      50% {
+        box-shadow: 0 0 40px rgba(239, 68, 68, 0.85);
+      }
+    }
+
+    .emergency-banner.show {
+      display: flex;
+    }
+
+    .emergency-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .emergency-icon {
+      font-size: 32px;
+      animation: shake 0.6s ease-in-out infinite alternate;
+    }
+
+    @keyframes shake {
+      0% { transform: scale(1) rotate(0deg); }
+      100% { transform: scale(1.15) rotate(-6deg); }
+    }
+
+    .emergency-text h3 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #FFF;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .emergency-text p {
+      font-size: 0.9rem;
+      color: #FECACA;
+    }
+
+    .btn-dismiss-banner {
+      background: #FFFFFF;
+      color: #991B1B;
+      font-weight: 700;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+
+    .btn-dismiss-banner:hover {
+      background: #FEE2E2;
+    }
+
+    /* Main Section: Alerts Grid */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      background: var(--bg-card);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+    }
+
+    .filter-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+
+    .filter-btn.active {
+      background: #374151;
+      color: #FFFFFF;
+    }
+
+    /* Cards Grid */
+    .alerts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .alert-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+
+    .alert-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.4);
+    }
+
+    .alert-card.active-violation {
+      border-color: rgba(239, 68, 68, 0.7);
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.2);
+    }
+
+    .card-media {
+      position: relative;
+      height: 190px;
+      background: #000;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .card-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+
+    .card-media:hover img {
+      transform: scale(1.04);
+    }
+
+    .card-media-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .camera-tag {
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .badge-status {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-status.active {
+      background: var(--danger);
+      color: #FFFFFF;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+    }
+
+    .badge-status.resolved {
+      background: var(--success);
+      color: #FFFFFF;
+    }
+
+    .card-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .card-timestamp {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .violation-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag-violation {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #FCA5A5;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .card-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.775rem;
+      color: var(--text-muted);
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .card-actions {
+      margin-top: auto;
+      padding-top: 10px;
+    }
+
+    .btn-resolve {
+      width: 100%;
+      padding: 9px;
+      background: #1F2937;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 8px;
+      font-size: 0.825rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-resolve:hover:not(:disabled) {
+      background: #047857;
+      border-color: #059669;
+      color: #FFFFFF;
+    }
+
+    .btn-resolve:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      border-color: transparent;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+    }
+
+    /* Empty state */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      background: var(--bg-card);
+      border: 1px dashed var(--border-color);
+      border-radius: 14px;
+      color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.8;
+    }
+
+    /* Modal Image Zoom */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal.open {
+      display: flex;
+    }
+
+    .modal-content {
+      max-width: 90vw;
+      max-height: 85vh;
+      background: var(--bg-card);
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-content img {
+      max-width: 100%;
+      max-height: 72vh;
+      object-fit: contain;
+      background: #000;
+    }
+
+    .modal-footer {
+      padding: 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      background: #111827;
+    }
+
+    .btn-close-modal {
+      background: #374151;
+      border: none;
+      color: white;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">⚠️</div>
+      <div class="brand-title">
+        <h1>Sistem Monitoring APD (On-Premise)</h1>
+        <p>Deteksi Pelanggaran Helm Kepala, Rompi & Sepatu Boot Real-Time</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="btn-audio-toggle" class="btn-audio active">
+        🔊 Audio Alarm: Aktif
+      </button>
+      <div id="ws-status" class="status-badge">
+        <span class="dot"></span>
+        <span id="ws-status-text">Menghubungkan...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Banner Sirine Berbunyi Looping -->
+  <div id="alarm-banner" style="display: none; background: linear-gradient(90deg, #DC2626, #991B1B); border: 2px solid #EF4444; color: white; padding: 14px 24px; border-radius: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; box-shadow: 0 0 25px rgba(239, 68, 68, 0.7); animation: pulse-danger 1.5s infinite;">
+    <div style="display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1rem;">
+      <span style="font-size: 1.6rem;">🚨</span>
+      <span>PERINGATAN: PELANGGARAN APD AKTIF! Sirine berbunyi berulang-ulang (looping)...</span>
+    </div>
+    <button id="btn-stop-alarm" style="background: #FFFFFF; color: #DC2626; border: none; padding: 9px 20px; border-radius: 8px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); font-size: 0.9rem; transition: transform 0.15s ease;">
+      ⏹️ Matikan Suara Sirine
+    </button>
+  </div>
+
+  <!-- KPI Overview -->
+  <section class="kpi-grid">
+    <div class="kpi-card danger">
+      <div class="kpi-label">Pelanggaran Aktif</div>
+      <div class="kpi-value" id="kpi-active">0</div>
+    </div>
+    <div class="kpi-card success">
+      <div class="kpi-label">Pelanggaran Selesai</div>
+      <div class="kpi-value" id="kpi-resolved">0</div>
+    </div>
+    <div class="kpi-card primary">
+      <div class="kpi-label">Total Pelanggaran</div>
+      <div class="kpi-value" id="kpi-total">0</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Status Server</div>
+      <div class="kpi-value" style="font-size: 1.3rem; margin-top: 6px;" id="kpi-server">Online (LAN)</div>
+    </div>
+  </section>
+
+  <!-- Emergency Banner (Appears on new violation) -->
+  <div id="emergency-banner" class="emergency-banner">
+    <div class="emergency-info">
+      <div class="emergency-icon">🚨</div>
+      <div class="emergency-text">
+        <h3 id="emergency-title">PERINGATAN: APD TIDAK LENGKAP TERDETEKSI!</h3>
+        <p id="emergency-desc">Kamera 01 mendeteksi pelanggaran Helm Keselamatan.</p>
+      </div>
+    </div>
+    <button class="btn-dismiss-banner" onclick="dismissEmergencyBanner()">Tutup Notifikasi</button>
+  </div>
+
+  <!-- Incident History Section -->
+  <section class="section-header">
+    <div class="section-title">
+      <span>📋 Riwayat Pelanggaran APD</span>
+    </div>
+    <div class="filters">
+      <button class="filter-btn active" data-filter="ALL" onclick="setFilter('ALL')">Semua</button>
+      <button class="filter-btn" data-filter="ACTIVE" onclick="setFilter('ACTIVE')">Aktif</button>
+      <button class="filter-btn" data-filter="RESOLVED" onclick="setFilter('RESOLVED')">Selesai</button>
+    </div>
+  </section>
+
+  <!-- Alerts Grid Container -->
+  <main id="alerts-grid" class="alerts-grid">
+    <div class="empty-state">
+      <div class="empty-state-icon">🛡️</div>
+      <h3>Belum Ada Pelanggaran APD Terdeteksi</h3>
+      <p>Sistem sedang memantau area secara aktif melalui kamera lokal / RTSP.</p>
+    </div>
+  </main>
+
+  <!-- Modal Zoom Image -->
+  <div id="image-modal" class="modal" onclick="closeModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <img id="modal-img" src="" alt="Snapshot Detail">
+      <div class="modal-footer">
+        <span id="modal-caption">Snapshot Bukti Pelanggaran</span>
+        <button class="btn-close-modal" onclick="closeModal()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State Aplikasi
+    let alerts = [];
+    let currentFilter = 'ALL';
+    let audioEnabled = true;
+    let ws = null;
+    let reconnectTimeout = null;
+    let audioCtx = null;
+
+    // Inisialisasi Audio Notifikasi MP3 Alarm (Mode Looping)
+    const alarmAudio = new Audio('/static/alarm.mp3');
+    alarmAudio.preload = 'auto';
+    alarmAudio.loop = true; // Otomatis berputar berulang-ulang sampai dimatikan
+
+    const alarmBanner = document.getElementById('alarm-banner');
+    const btnStopAlarm = document.getElementById('btn-stop-alarm');
+
+    function playAlarmSound() {
+      if (!audioEnabled) return;
+
+      // 1. Putar file MP3 alarm secara looping
+      alarmAudio.currentTime = 0;
+      const playPromise = alarmAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          if (alarmBanner) alarmBanner.style.display = 'flex';
+        }).catch(err => {
+          console.warn('Autoplay MP3 dibatasi browser atau error, beralih ke Synth Audio:', err);
+          playFallbackSynth();
+          if (alarmBanner) alarmBanner.style.display = 'flex';
+        });
+      }
+    }
+
+    // Fungsi Menghentikan Suara Sirine Looping
+    function stopAlarmSound() {
+      alarmAudio.pause();
+      alarmAudio.currentTime = 0;
+      if (alarmBanner) alarmBanner.style.display = 'none';
+    }
+
+    if (btnStopAlarm) {
+      btnStopAlarm.addEventListener('click', stopAlarmSound);
+    }
+
+    // Fallback suara sirine sintetis (jika file mp3 belum sempat dimuat browser)
+    function playFallbackSynth() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!audioCtx) {
+          audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.linearRampToValueAtTime(1050, now + 0.15);
+        osc.frequency.linearRampToValueAtTime(800, now + 0.3);
+        osc.frequency.linearRampToValueAtTime(1050, now + 0.45);
+        osc.frequency.linearRampToValueAtTime(800, now + 0.6);
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.7);
+      } catch (err) {
+        console.warn('Gagal memutar audio Web Audio API:', err);
+      }
+    }
+
+    // Toggle Audio Global
+    const audioBtn = document.getElementById('btn-audio-toggle');
+    audioBtn.addEventListener('click', () => {
+      audioEnabled = !audioEnabled;
+      if (audioEnabled) {
+        audioBtn.classList.add('active');
+        audioBtn.textContent = '🔊 Audio Alarm: Aktif';
+      } else {
+        stopAlarmSound();
+        audioBtn.classList.remove('active');
+        audioBtn.textContent = '🔇 Audio Alarm: Senyap';
+      }
+    });
+
+    // Format Nama Pelanggaran agar Lebih Manusiawi
+    function formatViolationName(tag) {
+      const lower = tag.toLowerCase().replace(/[-_]/g, ' ');
+      if (lower.includes('no helmet') || lower.includes('no hardhat')) return 'Tanpa Helm Kepala';
+      if (lower.includes('no vest')) return 'Tanpa Rompi';
+      if (lower.includes('no boot') || lower.includes('no shoe')) return 'Tanpa Sepatu Boot';
+      return 'Pelanggaran: ' + tag.toUpperCase();
+    }
+
+    // Update KPI & Statistik
+    function updateKPIs() {
+      const activeCount = alerts.filter(a => a.status === 'ACTIVE').length;
+      const resolvedCount = alerts.filter(a => a.status === 'RESOLVED').length;
+      document.getElementById('kpi-active').textContent = activeCount;
+      document.getElementById('kpi-resolved').textContent = resolvedCount;
+      document.getElementById('kpi-total').textContent = alerts.length;
+    }
+
+    // Render Kartu Pelanggaran
+    function renderAlerts() {
+      const grid = document.getElementById('alerts-grid');
+      const filtered = alerts.filter(a => {
+        if (currentFilter === 'ALL') return true;
+        return a.status === currentFilter;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🛡️</div>
+            <h3>${currentFilter === 'ACTIVE' ? 'Tidak Ada Pelanggaran Aktif' : 'Belum Ada Data'}</h3>
+            <p>Area aman terkendali dan mematuhi regulasi K3 APD.</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(alert => {
+        const isActive = alert.status === 'ACTIVE';
+        const snapshotUrl = `/snapshots/${alert.snapshot}`;
+        const violationTags = alert.violations.map(v => 
+          `<span class="tag-violation">⚠️ ${formatViolationName(v)}</span>`
+        ).join('');
+
+        return `
+          <div class="alert-card ${isActive ? 'active-violation' : ''}" id="alert-card-${alert.id}">
+            <div class="card-media" onclick="openModal('${snapshotUrl}', '${alert.camera_id} - ${alert.timestamp}')">
+              <img src="${snapshotUrl}" alt="Bukti Pelanggaran" onerror="this.src='https://placehold.co/600x400/1f2937/9ca3af?text=Foto+Tidak+Tersedia';">
+              <div class="card-media-overlay">
+                <span class="camera-tag">📷 ${alert.camera_id}</span>
+                <span class="badge-status ${isActive ? 'active' : 'resolved'}">
+                  ${isActive ? '🚨 AKTIF' : '✓ SELESAI'}
+                </span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="card-timestamp">
+                <span>🕒 ${alert.timestamp}</span>
+              </div>
+              <div class="violation-tags">
+                ${violationTags}
+              </div>
+              <div class="card-meta">
+                <span>ID: #${alert.id}</span>
+                <span>Akurasi: ${(alert.confidence * 100).toFixed(0)}%</span>
+              </div>
+              <div class="card-actions">
+                <button 
+                  class="btn-resolve" 
+                  onclick="resolveAlert(${alert.id})" 
+                  ${!isActive ? 'disabled' : ''}>
+                  ${isActive ? '✓ Tandai Selesai' : '✓ Selesai Ditangani (' + (alert.resolved_at || '') + ')'}
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Tampilkan Banner Darurat untuk Alert Baru
+    function showEmergencyBanner(alertData) {
+      const banner = document.getElementById('emergency-banner');
+      const title = document.getElementById('emergency-title');
+      const desc = document.getElementById('emergency-desc');
+
+      const violationsStr = alertData.violations.map(formatViolationName).join(' & ');
+      title.textContent = `PERINGATAN: ${violationsStr.toUpperCase()}`;
+      desc.textContent = `Terdeteksi di [${alertData.camera_id}] pada ${alertData.timestamp}. Segera tindak lanjuti!`;
+
+      banner.classList.add('show');
+      playAlarmSound();
+    }
+
+    function dismissEmergencyBanner() {
+      document.getElementById('emergency-banner').classList.remove('show');
+    }
+
+    // Filter Switcher
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+      });
+      renderAlerts();
+    }
+
+    // Tandai Alert Selesai (Resolve)
+    async function resolveAlert(alertId) {
+      try {
+        const res = await fetch(`/api/alerts/${alertId}/resolve`, { method: 'POST' });
+        if (res.ok) {
+          const item = alerts.find(a => a.id === alertId);
+          if (item) {
+            item.status = 'RESOLVED';
+            item.resolved_at = new Date().toLocaleTimeString();
+            updateKPIs();
+            renderAlerts();
+            // Matikan alarm jika semua pelanggaran aktif sudah diselesaikan
+            const hasActive = alerts.some(a => a.status === 'ACTIVE');
+            if (!hasActive) {
+              stopAlarmSound();
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Gagal menyelesaikan alert:', err);
+      }
+    }
+
+    // Fetch Riwayat Awal dari Server
+    async function fetchInitialAlerts() {
+      try {
+        const res = await fetch('/api/alerts?limit=50');
+        if (res.ok) {
+          alerts = await res.json();
+          updateKPIs();
+          renderAlerts();
+        }
+      } catch (err) {
+        console.error('Gagal memuat histori alerts:', err);
+      }
+    }
+
+    // Modal Zoom
+    function openModal(imgSrc, caption) {
+      const modal = document.getElementById('image-modal');
+      document.getElementById('modal-img').src = imgSrc;
+      document.getElementById('modal-caption').textContent = caption;
+      modal.classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('image-modal').classList.remove('open');
+    }
+
+    // Koneksi WebSocket Real-Time dengan Auto-Reconnect
+    function connectWebSocket() {
+      const statusEl = document.getElementById('ws-status');
+      const statusText = document.getElementById('ws-status-text');
+
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        statusEl.className = 'status-badge';
+        statusText.textContent = 'Terhubung (Live)';
+        if (reconnectTimeout) {
+          clearTimeout(reconnectTimeout);
+          reconnectTimeout = null;
+        }
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.type === 'NEW_ALERT') {
+            // Tambahkan alert baru di baris teratas
+            alerts.unshift(payload.data);
+            updateKPIs();
+            renderAlerts();
+            showEmergencyBanner(payload.data);
+          } else if (payload.type === 'ALERT_RESOLVED') {
+            const item = alerts.find(a => a.id === payload.data.id);
+            if (item) {
+              item.status = 'RESOLVED';
+              item.resolved_at = payload.data.resolved_at;
+              updateKPIs();
+              renderAlerts();
+            }
+          }
+        } catch (err) {
+          console.error('Error memproses pesan websocket:', err);
+        }
+      };
+
+      ws.onclose = () => {
+        statusEl.className = 'status-badge disconnected';
+        statusText.textContent = 'Terputus (Mencoba ulang...)';
+        scheduleReconnect();
+      };
+
+      ws.onerror = () => {
+        statusEl.className = 'status-badge disconnected';
+        statusText.textContent = 'Gagal Koneksi';
+        ws.close();
+      };
+    }
+
+    function scheduleReconnect() {
+      if (!reconnectTimeout) {
+        reconnectTimeout = setTimeout(() => {
+          connectWebSocket();
+        }, 3000);
+      }
+    }
+
+    // Inisialisasi saat Halaman Dimuat
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchInitialAlerts();
+      connectWebSocket();
+
+      // Trigger user gesture pertama kali untuk membuka izin audio browser
+      document.body.addEventListener('click', () => {
+        // Unlock HTML5 Audio
+        alarmAudio.play().then(() => {
+          alarmAudio.pause();
+          alarmAudio.currentTime = 0;
+        }).catch(() => {});
+
+        if (!audioCtx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      }, { once: true });
+    });
+  </script>
+</body>
+</html>
