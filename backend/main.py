@@ -235,6 +235,15 @@ async def resolve_alert(alert_id: int):
 
     return {"status": "success", "id": alert_id, "resolved_at": resolved_time}
 
+@app.post("/api/silence")
+async def silence_all_alarms():
+    """Mengirim sinyal broadcast ke semua dashboard web untuk mematikan suara sirine."""
+    await manager.broadcast({
+        "type": "SILENCE_ALARM",
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    })
+    return {"status": "success", "message": "Sinyal senyap disiarkan ke dashboard web"}
+
 # ----------------- WebSocket Endpoint -----------------
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

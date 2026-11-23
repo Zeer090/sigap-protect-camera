@@ -283,51 +283,51 @@ class BoxSmoother:
 
 
 is_alarm_playing = False
-alarm_lock = threading.Lock()
 
 def start_local_alarm_loop():
     """
     Memulai pemutaran sirine MP3 secara berulang-ulang (looping) di speaker PC.
-    Dijalankan di thread terpisah agar proses inferensi video tidak terganggu.
+    Windows MCI 'play repeat' berjalan secara asynchronous di level kernel Windows.
     """
     global is_alarm_playing
     if not AUDIO_ALARM_PATH.exists() or not sys.platform.startswith("win"):
         return
+    if is_alarm_playing:
+        return
 
-    with alarm_lock:
-        if is_alarm_playing:
-            return
+    try:
+        winmm = ctypes.windll.winmm
+        winmm.mciSendStringW('close apd_alarm', None, 0, None)
+        cmd_open = f'open "{AUDIO_ALARM_PATH}" type mpegvideo alias apd_alarm'
+        winmm.mciSendStringW(cmd_open, None, 0, None)
+        winmm.mciSendStringW('play apd_alarm repeat', None, 0, None)
         is_alarm_playing = True
-
-    def _loop():
-        global is_alarm_playing
-        try:
-            winmm = ctypes.windll.winmm
-            winmm.mciSendStringW('close apd_alarm', None, 0, None)
-            cmd_open = f'open "{AUDIO_ALARM_PATH}" type mpegvideo alias apd_alarm'
-            winmm.mciSendStringW(cmd_open, None, 0, None)
-            # Putar audio secara berulang-ulang (repeat/loop)
-            winmm.mciSendStringW('play apd_alarm repeat', None, 0, None)
-        except Exception:
-            pass
-
-    threading.Thread(target=_loop, daemon=True).start()
+    except Exception as e:
+        print(f"[AUDIO] Gagal memulai sirine: {e}")
 
 
 def stop_local_alarm_loop():
-    """Menghentikan pemutaran suara sirine MP3 looping."""
+    """
+    Menghentikan pemutaran suara sirine MP3 lokal langsung di speaker PC
+    dan menyiarkan sinyal senyap ke dashboard web agar sirine browser ikut mati.
+    """
     global is_alarm_playing
-    with alarm_lock:
-        if not is_alarm_playing:
-            return
-        is_alarm_playing = False
-
     try:
         winmm = ctypes.windll.winmm
         winmm.mciSendStringW('stop apd_alarm', None, 0, None)
         winmm.mciSendStringW('close apd_alarm', None, 0, None)
     except Exception:
         pass
+    is_alarm_playing = False
+
+    # Kirim sinyal broadcast ke backend agar web dashboard juga otomatis mematikan sirine
+    def _silence_web():
+        try:
+            base_url = BACKEND_URL.rsplit('/', 1)[0]
+            requests.post(f"{base_url}/silence", timeout=1.0)
+        except Exception:
+            pass
+    threading.Thread(target=_silence_web, daemon=True).start()
 
 
 def send_alert_to_backend(camera_name: str, violations: list, snapshot_filename: str, confidence: float):
@@ -619,9 +619,9 @@ def main():
             if not args.headless:
                 cv2.imshow("Monitor Deteksi APD Real-Time", annotated_frame)
                 key = cv2.waitKey(1) & 0xFF
-                if key == ord('s'):  # Tekan 's' untuk membisukan sirine
+                if key in (ord('s'), ord('S')):  # Tekan 's' atau 'S' untuk mematikan sirine
                     stop_local_alarm_loop()
-                    print("[INFO] Sirine alarm lokal dimatikan oleh pengguna.")
+                    print("[INFO] Sirine alarm lokal & web berhasil dimatikan pengguna.")
                 elif key == ord('q') or key == 27:  # 'q' atau ESC
                     print("[INFO] Penghentian sistem oleh pengguna...")
                     break

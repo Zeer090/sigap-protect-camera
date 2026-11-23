@@ -926,6 +926,8 @@
               updateKPIs();
               renderAlerts();
             }
+          } else if (payload.type === 'SILENCE_ALARM') {
+            stopAlarmSound();
           }
         } catch (err) {
           console.error('Error memproses pesan websocket:', err);
